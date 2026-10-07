@@ -13,7 +13,7 @@
 
 ## English
 
-Agent Bridge is a connector for local coding agents. A coordinator — Codex, Cursor, Kimi Code, ZCode, Grok Build, Claude Code, or Devin — directs Antigravity CLI, Grok Build, Kimi Code, DeepSeek Harness, OpenCode, Claude Code, Codex CLI, Devin CLI, ZCode, and MiniMax Code. The same product can be a coordinator and a worker; those are different processes. More agents will follow.
+Agent Bridge is a local control plane for coding agents. It connects multiple agent runtimes behind one MCP interface, keeps sessions resumable, exposes worker health and quota information, and gives a coordinator the machinery to route and verify real work. A coordinator — Codex, Cursor, Kimi Code, ZCode, Grok Build, Claude Code, or Devin — directs Antigravity CLI, Grok Build, Kimi Code, DeepSeek Harness, OpenCode, Claude Code, Codex CLI, Devin CLI, ZCode, and MiniMax Code. The same product can be a coordinator and a worker; those are different processes. More agents will follow.
 
 ```text
 User → Coordinator (Codex / Cursor / Kimi Code / ZCode / Grok Build / Claude Code / Devin)
@@ -31,12 +31,38 @@ User → Coordinator (Codex / Cursor / Kimi Code / ZCode / Grok Build / Claude C
 
 It does not drive GUIs. The user talks only to the coordinator.
 
-### Install
+### Why Agent Bridge
+
+Most coding agents are excellent in isolation. The problem starts when a real project needs several of them. Agent Bridge provides the layer above the workers: one coordinator, a registry of local runtimes, resumable sessions, bounded task execution, quota visibility, transcripts, diagnostics, and explicit verification.
+
+The goal is not to make every worker identical. It is to make their differences useful.
+
+```text
+                 PROJECT
+                    │
+                    ▼
+              COORDINATOR
+                    │
+              Agent Bridge
+                    │
+        ┌───────────┼───────────┐
+        ▼           ▼           ▼
+      RESEARCH    BUILD       REVIEW
+     Antigravity   Grok       Claude
+        │           │           │
+        └───────────┼───────────┘
+                    ▼
+              VERIFY + MERGE
+```
+
+Agent Bridge is deliberately local-first. Workers keep their own authentication and capabilities. Bridge handles coordination rather than becoming another hosted model gateway.
+
+## Install
 
 Need [uv](https://docs.astral.sh/uv/). Then:
 
 ```powershell
-uv tool install git+https://github.com/FeiZhuLulu/Agent-Bridge.git
+uv tool install git+https://github.com/eoinmcgee1993/Agent-Bridge.git
 ```
 
 ### Connect Codex
@@ -99,7 +125,18 @@ Full process, including agents that need adapter changes: [skills/add-worker/SKI
 
 Close coordinators that are holding Bridge, then `agent-bridge upgrade`, then restart them.
 
-### Tools
+### Product architecture
+
+The runtime is split into four responsibilities:
+
+- **Coordinator** decides whether work should be delegated and owns acceptance.
+- **Registry** owns sessions, tasks, persistence, worker lifecycle, and result collection.
+- **Adapters** translate the common task contract into each worker's native protocol.
+- **Observability** records transcripts, diagnostics, quota state, and workspace changes without treating worker self-report as proof.
+
+This separation is intentional. A new worker should normally require an adapter and configuration, not a rewrite of the orchestration core.
+
+## Tools
 
 | Tool | Role |
 | --- | --- |
@@ -318,3 +355,4 @@ uv run pytest
 ## License
 
 [MIT](LICENSE) © FeiZhuLulu
+\n## Project direction\n\nThis repository is being developed as a serious, local-first multi-agent control plane. The near-term priorities are routing policy, verification, worker health, operational visibility, safer failure handling, and a cleaner public developer experience. See [ROADMAP.md](ROADMAP.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).\n
